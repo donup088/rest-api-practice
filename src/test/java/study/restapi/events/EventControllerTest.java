@@ -34,7 +34,7 @@ public class EventControllerTest {
         EventDto eventDto = EventDto.builder()
                 .name("Spring")
                 .description("Rest API")
-                .beginEventDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
+                .beginEnrollmentDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
                 .closeEnrollmentDateTime(LocalDateTime.of(2020, 1, 28, 12, 1))
                 .beginEventDateTime(LocalDateTime.of(2020, 1, 27, 12, 1))
                 .endEventDateTime(LocalDateTime.of(2020, 1, 28, 12, 1))
@@ -65,7 +65,7 @@ public class EventControllerTest {
                 .id(100L)
                 .name("Spring")
                 .description("Rest API")
-                .beginEventDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
+                .beginEnrollmentDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
                 .closeEnrollmentDateTime(LocalDateTime.of(2020, 1, 28, 12, 1))
                 .beginEventDateTime(LocalDateTime.of(2020, 1, 27, 12, 1))
                 .endEventDateTime(LocalDateTime.of(2020, 1, 28, 12, 1))
@@ -90,6 +90,28 @@ public class EventControllerTest {
     @Test
     public void createEvent_Bad_Request_Empty_Input() throws Exception {
         EventDto eventDto = EventDto.builder().build();
+
+        mvc.perform(post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(eventDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+
+    public void createEvent_Bad_Request_Wrong_Input() throws Exception {
+        EventDto eventDto = EventDto.builder()
+                .name("Spring")
+                .description("Rest API")
+                .beginEnrollmentDateTime(LocalDateTime.of(2020, 1, 28, 16, 3))
+                .closeEnrollmentDateTime(LocalDateTime.of(2020, 1, 27, 12, 1))
+                .beginEventDateTime(LocalDateTime.of(2020, 1, 26, 12, 1))
+                .endEventDateTime(LocalDateTime.of(2020, 1, 24, 12, 1))
+                .basePrice(10000)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("강남역")
+                .build();
 
         mvc.perform(post("/api/events")
                 .contentType(MediaType.APPLICATION_JSON)
