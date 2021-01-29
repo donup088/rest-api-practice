@@ -2,11 +2,14 @@ package study.restapi.events;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tomcat.jni.Local;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
@@ -21,13 +24,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class)
-@WebMvcTest
+@SpringBootTest
+@AutoConfigureMockMvc
 public class EventControllerTest {
     @Autowired
     MockMvc mvc;
-
-    @MockBean
-    EventRepository eventRepository;
 
     @Autowired
     ObjectMapper objectMapper;
@@ -35,6 +36,7 @@ public class EventControllerTest {
     @Test
     public void createEvent() throws Exception {
         Event event = Event.builder()
+                .id(100L)
                 .name("Spring")
                 .description("Rest API")
                 .beginEventDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
@@ -45,9 +47,10 @@ public class EventControllerTest {
                 .maxPrice(200)
                 .limitOfEnrollment(100)
                 .location("강남역")
+                .free(true)
+                .offline(false)
+                .eventStatus(EventStatus.PUBLISHED)
                 .build();
-        event.setId(10L);
-        Mockito.when(eventRepository.save(event)).thenReturn(event);
 
         mvc.perform(post("/api/events")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -57,6 +60,10 @@ public class EventControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("id").exists())
                 .andExpect(header().exists(HttpHeaders.LOCATION))
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaTypes.HAL_JSON_VALUE));
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaTypes.HAL_JSON_VALUE))
+                .andExpect(jsonPath("id").value(Matchers.not(100)))
+                .andExpect(jsonPath("free").value(Matchers.not(true)))
+                .andExpect(jsonPath("eventStatus").value(EventStatus.DREFT.name()));
+
     }
 }

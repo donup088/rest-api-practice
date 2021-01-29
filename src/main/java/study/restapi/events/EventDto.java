@@ -1,23 +1,17 @@
 package study.restapi.events;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
-
+@Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
-@EqualsAndHashCode(of = "id")
-@Entity
-public class Event {
-    @Id
-    @GeneratedValue
-    private Long id;
-
+@AllArgsConstructor
+public class EventDto {
     private String name;
     private String description;
     private String location;
@@ -28,10 +22,4 @@ public class Event {
     private LocalDateTime closeEnrollmentDateTime;
     private LocalDateTime beginEventDateTime;
     private LocalDateTime endEventDateTime;
-
-    private boolean offline;
-    private boolean free;
-
-    @Enumerated(EnumType.STRING)
-    private EventStatus eventStatus = EventStatus.DREFT;
 }
