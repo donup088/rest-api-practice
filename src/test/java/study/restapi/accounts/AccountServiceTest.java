@@ -1,5 +1,6 @@
 package study.restapi.accounts;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,11 @@ public class AccountServiceTest {
 
     @Autowired
     PasswordEncoder passwordEncoder;
+
+    @Before
+    public void setup(){
+        accountRepository.deleteAll();
+    }
 
     @Test
     public void findByUsername() {
