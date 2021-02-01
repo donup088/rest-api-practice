@@ -110,10 +110,12 @@ public class EventController {
         if (errors.hasErrors()) {
             return badRequest(errors);
         }
+
         Event event = optionalEvent.get();
         if(!event.getAccount().equals(currentUser)){
             return new ResponseEntity(HttpStatus.UNAUTHORIZED);
         }
+
         modelMapper.map(eventDto, event); // 어디에서 -> 어디로
         Event updateEvent = eventRepository.save(event);
 

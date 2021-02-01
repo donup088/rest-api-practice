@@ -1,7 +1,9 @@
 package study.restapi.events;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 import study.restapi.accounts.Account;
+import study.restapi.accounts.AccountSerializer;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -37,6 +39,7 @@ public class Event {
     private EventStatus eventStatus = EventStatus.DREFT;
 
     @ManyToOne
+    @JsonSerialize(using = AccountSerializer.class)
     private Account account;
 
     public void update() {

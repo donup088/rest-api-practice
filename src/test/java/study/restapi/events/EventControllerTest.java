@@ -132,26 +132,36 @@ public class EventControllerTest extends BaseControllerTest {
     }
 
     private String getBearToken() throws Exception {
-        return "Bearer  " + getAccessToken();
+        return "Bearer  " + getAccessToken(true);
     }
 
-    private String getAccessToken() throws Exception {
-        Account account = Account.builder()
-                .email(appProperties.getAdminUsername())
-                .password(appProperties.getAdminPassword())
-                .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
-                .build();
-        accountService.saveAccount(account);
+    private String getBearToken(boolean needToCreateAccount) throws Exception {
+        return "Bearer  " + getAccessToken(needToCreateAccount);
+    }
+
+    private String getAccessToken(boolean needToCreateAccount) throws Exception {
+        if (needToCreateAccount) {
+            createAccount();
+        }
 
         ResultActions perform = mvc.perform(post("/oauth/token")
                 .with(httpBasic(appProperties.getClientId(), appProperties.getClientSecret()))
-                .param("username", appProperties.getAdminUsername())
-                .param("password", appProperties.getAdminPassword())
+                .param("username", appProperties.getUserUsername())
+                .param("password", appProperties.getUserPassword())
                 .param("grant_type", "password"));
 
         String responseBody = perform.andReturn().getResponse().getContentAsString();
         Jackson2JsonParser parser = new Jackson2JsonParser();
         return parser.parseMap(responseBody).get("access_token").toString();
+    }
+
+    private Account createAccount() {
+        Account account = Account.builder()
+                .email(appProperties.getUserUsername())
+                .password(appProperties.getUserPassword())
+                .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
+                .build();
+        return accountService.saveAccount(account);
     }
 
     @Test
@@ -265,7 +275,8 @@ public class EventControllerTest extends BaseControllerTest {
     @Test
     @TestDescription("기존의 이벤트를 하나 조회하기")
     public void getEvent() throws Exception {
-        Event event = generateEvent(100);
+        Account account = createAccount();
+        Event event = generateEvent(100, account);
 
         mvc.perform(get("/api/events/{id}", event.getId()))
                 .andExpect(status().isOk())
@@ -286,13 +297,14 @@ public class EventControllerTest extends BaseControllerTest {
     @Test
     @TestDescription("이벤트 수정하기")
     public void updateEvent() throws Exception {
-        Event event = generateEvent(500);
+        Account account = createAccount();
+        Event event = generateEvent(500, account);
         EventDto eventDto = modelMapper.map(event, EventDto.class);
         String eventName = "UpdateEvent";
         eventDto.setName(eventName);
 
         mvc.perform(put("/api/events/{id}", event.getId())
-                .header(HttpHeaders.AUTHORIZATION, getBearToken())
+                .header(HttpHeaders.AUTHORIZATION, getBearToken(false))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(eventDto)))
                 .andDo(print())
@@ -388,7 +400,18 @@ public class EventControllerTest extends BaseControllerTest {
     }
 
     private Event generateEvent(int index) {
-        Event event = Event.builder()
+        Event event = buildEvent(index);
+        return eventRepository.save(event);
+    }
+
+    private Event generateEvent(int index, Account account) {
+        Event event = buildEvent(index);
+        event.setAccount(account);
+        return eventRepository.save(event);
+    }
+
+    private Event buildEvent(int index) {
+        return Event.builder()
                 .name("event " + index)
                 .description("test event " + index)
                 .beginEnrollmentDateTime(LocalDateTime.of(2020, 1, 27, 16, 3))
@@ -403,7 +426,5 @@ public class EventControllerTest extends BaseControllerTest {
                 .offline(true)
                 .eventStatus(EventStatus.DREFT)
                 .build();
-
-        return eventRepository.save(event);
     }
 }
