@@ -8,12 +8,14 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
-import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
+import study.restapi.accounts.Account;
+import study.restapi.accounts.CurrentUser;
 import study.restapi.common.ErrorsResource;
 
 import javax.validation.Valid;
@@ -31,7 +33,9 @@ public class EventController {
     private final EventValidator eventValidator;
 
     @PostMapping
-    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
+    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto,
+                                      Errors errors,
+                                      @CurrentUser Account account) {
         if (errors.hasErrors()) {
             return badRequest(errors);
         }
@@ -44,6 +48,7 @@ public class EventController {
 
         Event event = modelMapper.map(eventDto, Event.class);
         event.update();
+        event.setAccount(account);
         Event newEvent = eventRepository.save(event);
         WebMvcLinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
         URI createdUri = selfLinkBuilder.toUri();
@@ -59,15 +64,21 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+    public ResponseEntity queryEvents(Pageable pageable,
+                                      PagedResourcesAssembler<Event> assembler,
+                                      @CurrentUser Account account) {
         Page<Event> page = eventRepository.findAll(pageable);
         var entityModels = assembler.toModel(page, e -> new EventResource(e));
         entityModels.add(new Link("/docs/index.html#resources-events-list").withRel("profile"));
+        if (account != null) {
+            entityModels.add(linkTo(EventController.class).withRel("create-event"));
+        }
         return ResponseEntity.ok(entityModels);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity getEvent(@PathVariable("id") Long id) {
+    public ResponseEntity getEvent(@PathVariable("id") Long id,
+                                   @CurrentUser Account currentUser) {
         Optional<Event> optionalEvent = eventRepository.findById(id);
         if (optionalEvent.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -75,6 +86,9 @@ public class EventController {
         Event event = optionalEvent.get();
         EventResource eventResource = new EventResource(event);
         eventResource.add(new Link("/docs/index.html#resources-events-get").withRel("profile"));
+        if(event.getAccount().equals(currentUser)){
+            eventResource.add(linkTo(EventController.class).slash(event.getId()).withRel("update-event"));
+        }
         return ResponseEntity.ok(eventResource);
     }
 
@@ -82,7 +96,8 @@ public class EventController {
     @PutMapping("/{id}")
     public ResponseEntity updateEvent(@PathVariable("id") Long id,
                                       @RequestBody @Valid EventDto eventDto,
-                                      Errors errors) {
+                                      Errors errors,
+                                      @CurrentUser Account currentUser) {
         Optional<Event> optionalEvent = eventRepository.findById(id);
         if (optionalEvent.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -96,6 +111,9 @@ public class EventController {
             return badRequest(errors);
         }
         Event event = optionalEvent.get();
+        if(!event.getAccount().equals(currentUser)){
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
         modelMapper.map(eventDto, event); // 어디에서 -> 어디로
         Event updateEvent = eventRepository.save(event);
 
