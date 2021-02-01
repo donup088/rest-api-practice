@@ -1,6 +1,7 @@
 package study.restapi.events;
 
 import lombok.*;
+import study.restapi.accounts.Account;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -34,6 +35,9 @@ public class Event {
 
     @Enumerated(EnumType.STRING)
     private EventStatus eventStatus = EventStatus.DREFT;
+
+    @ManyToOne
+    private Account account;
 
     public void update() {
         if (this.basePrice == 0 && this.maxPrice == 0) {
