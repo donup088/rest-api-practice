@@ -12,6 +12,7 @@ import study.restapi.accounts.Account;
 import study.restapi.accounts.AccountRepository;
 import study.restapi.accounts.AccountRole;
 import study.restapi.accounts.AccountService;
+import study.restapi.common.AppProperties;
 import study.restapi.common.BaseControllerTest;
 import study.restapi.common.TestDescription;
 
@@ -40,6 +41,9 @@ public class EventControllerTest extends BaseControllerTest {
 
     @Autowired
     AccountRepository accountRepository;
+
+    @Autowired
+    AppProperties appProperties;
 
     @Before
     public void setup(){
@@ -132,22 +136,17 @@ public class EventControllerTest extends BaseControllerTest {
     }
 
     private String getAccessToken() throws Exception {
-        String username = "test2@example.com";
-        String password = "pass2";
         Account account = Account.builder()
-                .email(username)
-                .password(password)
+                .email(appProperties.getAdminUsername())
+                .password(appProperties.getAdminPassword())
                 .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
                 .build();
         accountService.saveAccount(account);
 
-        String clientId = "myApp";
-        String clientSecret = "pass";
-
         ResultActions perform = mvc.perform(post("/oauth/token")
-                .with(httpBasic(clientId, clientSecret))
-                .param("username", username)
-                .param("password", password)
+                .with(httpBasic(appProperties.getClientId(), appProperties.getClientSecret()))
+                .param("username", appProperties.getAdminUsername())
+                .param("password", appProperties.getAdminPassword())
                 .param("grant_type", "password"));
 
         String responseBody = perform.andReturn().getResponse().getContentAsString();
